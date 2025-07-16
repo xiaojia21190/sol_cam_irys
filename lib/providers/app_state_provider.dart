@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:solana/solana.dart';
@@ -78,7 +79,7 @@ class AppState extends _$AppState {
 
   Future<void> initialize() async {
     try {
-      print('begin ${state.status}');
+      debugPrint('begin ${state.status}');
       setStatus(AppStatus.initializing);
 
       // Initialize services
@@ -89,7 +90,7 @@ class AppState extends _$AppState {
 
       setStatus(AppStatus.ready);
 
-      print('end ${state.status}');
+      debugPrint('end ${state.status}');
     } catch (e) {
       setError('Failed to initialize app: $e');
     }
@@ -100,11 +101,11 @@ class AppState extends _$AppState {
       final solanaService = ref.read(solanaServiceProvider);
       final settings = state.settings;
 
-      print('Initializing Solana service with RPC: ${settings.network.rpcUrl}');
+      debugPrint('Initializing Solana service with RPC: ${settings.network.rpcUrl}');
       await solanaService.initialize(settings.network.rpcUrl, settings.network.websocketUrl);
-      print('Solana service initialized successfully');
+      debugPrint('Solana service initialized successfully');
     } catch (e) {
-      print('Failed to initialize Solana service: $e');
+      debugPrint('Failed to initialize Solana service: $e');
       throw Exception('Failed to initialize Solana service: $e');
     }
   }
