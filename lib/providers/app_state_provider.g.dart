@@ -6,11 +6,11 @@ part of 'app_state_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$solanaServiceHash() => r'1373b8c8897d10471476af13815fb3a38bfc6cb0';
+String _$solanaServiceHash() => r'bd8f8e84ae4216c8bfc1144ae925574055468558';
 
 /// See also [solanaService].
 @ProviderFor(solanaService)
-final solanaServiceProvider = AutoDisposeProvider<SolanaService>.internal(
+final solanaServiceProvider = Provider<SolanaService>.internal(
   solanaService,
   name: r'solanaServiceProvider',
   debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
@@ -22,12 +22,12 @@ final solanaServiceProvider = AutoDisposeProvider<SolanaService>.internal(
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-typedef SolanaServiceRef = AutoDisposeProviderRef<SolanaService>;
-String _$storageServiceHash() => r'7b0d998ac8df97c773021c780f9bb4d2c3f5abb4';
+typedef SolanaServiceRef = ProviderRef<SolanaService>;
+String _$storageServiceHash() => r'ff8ac9b5ff769f43a134e5069649c45a8b4894bf';
 
 /// See also [storageService].
 @ProviderFor(storageService)
-final storageServiceProvider = AutoDisposeProvider<StorageService>.internal(
+final storageServiceProvider = Provider<StorageService>.internal(
   storageService,
   name: r'storageServiceProvider',
   debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
@@ -39,7 +39,7 @@ final storageServiceProvider = AutoDisposeProvider<StorageService>.internal(
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-typedef StorageServiceRef = AutoDisposeProviderRef<StorageService>;
+typedef StorageServiceRef = ProviderRef<StorageService>;
 String _$cameraServiceHash() => r'cc4834f8605d3b9c7220b497a37e8b43b9586fbe';
 
 /// See also [cameraService].
@@ -142,7 +142,7 @@ final processedPhotosProvider = AutoDisposeProvider<List<PhotoModel>>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef ProcessedPhotosRef = AutoDisposeProviderRef<List<PhotoModel>>;
-String _$appStateHash() => r'58b40e62af824f94e5c00b3b184f9b25213df099';
+String _$appStateHash() => r'344fc48c1efc0f017bc464f187e9761bbde30927';
 
 /// See also [AppState].
 @ProviderFor(AppState)
@@ -157,7 +157,7 @@ final appStateProvider = NotifierProvider<AppState, AppStateModel>.internal(
 );
 
 typedef _$AppState = Notifier<AppStateModel>;
-String _$walletActionsHash() => r'453347b534872983c5dae9438ca5a6361b0ce428';
+String _$walletActionsHash() => r'a6533683396a1e07ef67533a00b3cf349272e251';
 
 /// See also [WalletActions].
 @ProviderFor(WalletActions)

@@ -51,7 +51,7 @@ class HomeScreen extends ConsumerWidget {
                       _buildSecondaryActions(context),
 
                       // 统计信息
-                      Expanded(child: _buildStatsSection(context, appState, ref)),
+                      Expanded(child: SingleChildScrollView(child: _buildStatsSection(context, appState, ref))),
                       // _buildStatsSection(context, appState, ref),
                     ],
                   ),
@@ -207,6 +207,13 @@ class HomeScreen extends ConsumerWidget {
   // 钱包相关方法
   void _showWalletDialog(BuildContext context, WidgetRef ref) {
     final isConnected = ref.read(isWalletConnectedProvider);
+    final appState = ref.read(appStateProvider);
+
+    // 检查应用是否已经初始化完成
+    if (appState.status != AppStatus.ready) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please wait for the app to finish initializing before connecting wallet.'), backgroundColor: Colors.orange));
+      return;
+    }
 
     if (isConnected) {
       _showDisconnectDialog(context, ref);
@@ -217,6 +224,13 @@ class HomeScreen extends ConsumerWidget {
 
   Future<void> _connectWalletWithMWA(BuildContext context, WidgetRef ref) async {
     try {
+      // 再次检查应用状态，确保 Solana 服务已初始化
+      final appState = ref.read(appStateProvider);
+      if (appState.status != AppStatus.ready) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('App is not ready. Please wait for initialization to complete.'), backgroundColor: Colors.orange));
+        return;
+      }
+
       // 显示现代化加载指示器
       showDialog(
         context: context,
@@ -235,7 +249,13 @@ class HomeScreen extends ConsumerWidget {
     } catch (e) {
       if (context.mounted) {
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to connect wallet: $e'), backgroundColor: Colors.red));
+
+        // Check if it's a wallet not found error
+        if (e.toString().contains('No Solana wallet app found')) {
+          _showWalletInstallDialog(context);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to connect wallet: $e'), backgroundColor: Colors.red));
+        }
       }
     }
   }
@@ -376,5 +396,46 @@ class HomeScreen extends ConsumerWidget {
 
   void _showComingSoon(BuildContext context, String feature) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$feature feature coming soon!'), backgroundColor: Colors.blue));
+  }
+
+  void _showWalletInstallDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.wallet, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('Wallet Required'),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('To use this app, you need to install a Solana wallet that supports Mobile Wallet Adapter.', style: TextStyle(fontSize: 16)),
+            SizedBox(height: 16),
+            Text('Recommended wallets:', style: TextStyle(fontWeight: FontWeight.bold)),
+            SizedBox(height: 8),
+            Text('• Phantom Wallet'),
+            Text('• Solflare Wallet'),
+            Text('• Backpack Wallet'),
+            SizedBox(height: 16),
+            Text('Please install one of these wallets from the Google Play Store and try connecting again.', style: TextStyle(fontSize: 14, color: Colors.grey)),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              // You could add logic here to open the Play Store
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please search for "Phantom", "Solflare", or "Backpack" in the Play Store'), backgroundColor: Colors.blue));
+            },
+            child: const Text('Open Play Store'),
+          ),
+        ],
+      ),
+    );
   }
 }

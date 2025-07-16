@@ -145,9 +145,9 @@ extension NetworkTypeExtension on NetworkType {
   String get websocketUrl {
     switch (this) {
       case NetworkType.devnet:
-        return 'wss://api.devnet.solana.com/';
+        return 'wss://api.devnet.solana.com';
       case NetworkType.testnet:
-        return 'wss://api.testnet.solana.com/';
+        return 'wss://api.testnet.solana.com';
       case NetworkType.mainnet:
         return 'wss://api.mainnet-beta.solana.com/';
     }

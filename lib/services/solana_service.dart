@@ -16,6 +16,7 @@ abstract class SolanaService {
   Future<bool> confirmTransaction(String signature);
 
   // Mobile Wallet Adapter specific methods
+  Future<bool> isWalletAdapterAvailable();
   Future<void> requestAirdrop({int lamports = 1000000000});
   Future<String> sendSOL({required String recipientAddress, required double amount});
   Future<double> getConnectedWalletBalance();
@@ -49,6 +50,15 @@ class SolanaServiceImpl implements SolanaService {
   }
 
   @override
+  Future<bool> isWalletAdapterAvailable() async {
+    try {
+      return await LocalAssociationScenario.isAvailable();
+    } catch (e) {
+      return false;
+    }
+  }
+
+  @override
   Future<WalletModel> connectWallet() async {
     try {
       if (_client == null) {
@@ -68,11 +78,15 @@ class SolanaServiceImpl implements SolanaService {
       // If we have an auth token, deauthorize the wallet
       if (_authToken != null) {
         final session = await LocalAssociationScenario.create();
-        await session.startActivityForResult(null);
+        session.startActivityForResult(null).ignore();
 
         final client = await session.start();
-        await client.deauthorize(authToken: _authToken!);
-        await session.close();
+
+        try {
+          await client.deauthorize(authToken: _authToken!);
+        } finally {
+          await session.close();
+        }
       }
     } catch (e) {
       // Log error but don't throw - we still want to clear local state
@@ -115,7 +129,7 @@ class SolanaServiceImpl implements SolanaService {
 
       // Create MWA session
       final session = await LocalAssociationScenario.create();
-      await session.startActivityForResult(null);
+      session.startActivityForResult(null).ignore();
       final client = await session.start();
 
       try {
@@ -207,28 +221,37 @@ class SolanaServiceImpl implements SolanaService {
   /// Connects to a wallet using Mobile Wallet Adapter
   Future<WalletModel> _connectWithMWA() async {
     try {
+      // Check if MWA is available first
+      final isAvailable = await LocalAssociationScenario.isAvailable();
+      if (!isAvailable) {
+        throw SolanaException('Mobile Wallet Adapter is not available on this device');
+      }
+
       // Create a Mobile Wallet Adapter session
       final session = await LocalAssociationScenario.create();
-      await session.startActivityForResult(null);
+      session.startActivityForResult(null).ignore();
 
       final client = await session.start();
 
-      // Authorize the wallet connection - MWA will handle wallet selection automatically
-      final result = await client.authorize(identityUri: Uri.parse(_appUri), iconUri: Uri.parse(_iconUri), identityName: _appName, cluster: _cluster);
+      try {
+        // Authorize the wallet connection - MWA will handle wallet selection automatically
+        final result = await client.authorize(identityUri: Uri.parse(_appUri), iconUri: Uri.parse(_iconUri), identityName: _appName, cluster: _cluster);
 
-      await session.close();
+        if (result != null) {
+          // Store the auth token and public key for future use
+          _authToken = result.authToken;
+          _publicKey = result.publicKey;
 
-      if (result != null) {
-        // Store the auth token and public key for future use
-        _authToken = result.authToken;
-        _publicKey = result.publicKey;
+          // Create wallet model - MWA handles the actual wallet selection
+          final walletModel = WalletModel.fromMWAResult(authToken: result.authToken, publicKey: Ed25519HDPublicKey(_publicKey!).toBase58(), walletUriBase: result.walletUriBase?.toString());
 
-        // Create wallet model - MWA handles the actual wallet selection
-        final walletModel = WalletModel.fromMWAResult(authToken: result.authToken, publicKey: Ed25519HDPublicKey(_publicKey!).toBase58(), walletUriBase: result.walletUriBase?.toString());
-
-        return walletModel;
-      } else {
-        throw SolanaException('Failed to authorize wallet');
+          return walletModel;
+        } else {
+          throw SolanaException('User declined wallet authorization');
+        }
+      } finally {
+        // Always close the session
+        await session.close();
       }
     } catch (e) {
       throw SolanaException('Failed to connect wallet with MWA: $e');
@@ -284,7 +307,8 @@ class SolanaServiceImpl implements SolanaService {
     try {
       // Create MWA session
       final session = await LocalAssociationScenario.create();
-      await session.startActivityForResult(null);
+      session.startActivityForResult(null).ignore();
+
       final client = await session.start();
 
       try {

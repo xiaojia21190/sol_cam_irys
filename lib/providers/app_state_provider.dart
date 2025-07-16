@@ -96,10 +96,17 @@ class AppState extends _$AppState {
   }
 
   Future<void> _initializeServices() async {
-    final solanaService = ref.read(solanaServiceProvider);
-    final settings = state.settings;
+    try {
+      final solanaService = ref.read(solanaServiceProvider);
+      final settings = state.settings;
 
-    await solanaService.initialize(settings.network.rpcUrl, settings.network.websocketUrl);
+      print('Initializing Solana service with RPC: ${settings.network.rpcUrl}');
+      await solanaService.initialize(settings.network.rpcUrl, settings.network.websocketUrl);
+      print('Solana service initialized successfully');
+    } catch (e) {
+      print('Failed to initialize Solana service: $e');
+      throw Exception('Failed to initialize Solana service: $e');
+    }
   }
 
   Future<void> _loadSavedData() async {
@@ -109,12 +116,12 @@ class AppState extends _$AppState {
 }
 
 // Service providers
-@riverpod
+@Riverpod(keepAlive: true)
 SolanaService solanaService(Ref ref) {
   return SolanaServiceImpl();
 }
 
-@riverpod
+@Riverpod(keepAlive: true)
 StorageService storageService(Ref ref) {
   final settings = ref.watch(appStateProvider.select((state) => state.settings));
 
@@ -179,6 +186,12 @@ class WalletActions extends _$WalletActions {
 
       appState.setStatus(AppStatus.loading);
 
+      // Check if Mobile Wallet Adapter is available
+      final isWalletAdapterAvailable = await solanaService.isWalletAdapterAvailable();
+      if (!isWalletAdapterAvailable) {
+        throw Exception('Mobile Wallet Adapter is not available. Please install a compatible Solana wallet.');
+      }
+
       final wallet = await solanaService.connectWallet();
       appState.setConnectedWallet(wallet);
 
@@ -189,7 +202,20 @@ class WalletActions extends _$WalletActions {
 
       appState.setStatus(AppStatus.ready);
     } catch (e) {
-      ref.read(appStateProvider.notifier).setError('Failed to connect wallet: $e');
+      String errorMessage;
+
+      // Check for specific wallet-related errors
+      if (e.toString().contains('ActivityNotFoundException') || e.toString().contains('No Activity found to handle Intent') || e.toString().contains('solana-wallet://') || e.toString().contains('Mobile Wallet Adapter is not available')) {
+        errorMessage = 'No Solana wallet app found. Please install a compatible wallet like Phantom, Solflare, or Backpack from the Play Store.';
+      } else if (e.toString().contains('User declined authorization') || e.toString().contains('User declined wallet authorization')) {
+        errorMessage = 'Wallet connection was cancelled by user.';
+      } else if (e.toString().contains('Solana client not initialized')) {
+        errorMessage = 'App is still initializing. Please wait a moment and try again.';
+      } else {
+        errorMessage = 'Failed to connect wallet: ${e.toString().replaceAll('SolanaException: ', '').replaceAll('Failed to connect wallet: ', '')}';
+      }
+
+      ref.read(appStateProvider.notifier).setError(errorMessage);
     }
   }
 

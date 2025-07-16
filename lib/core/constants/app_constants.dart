@@ -6,11 +6,11 @@ class AppConstants {
 
   // Network URLs
   static const String devnetRpcUrl = 'https://api.devnet.solana.com';
-  static const String devnetWebsocketUrl = 'wss://api.devnet.solana.com/';
+  static const String devnetWebsocketUrl = 'wss://api.devnet.solana.com';
   static const String testnetRpcUrl = 'https://api.testnet.solana.com';
-  static const String testnetWebsocketUrl = 'wss://api.testnet.solana.com/';
+  static const String testnetWebsocketUrl = 'wss://api.testnet.solana.com';
   static const String mainnetRpcUrl = 'https://api.mainnet-beta.solana.com';
-  static const String mainnetWebsocketUrl = 'wss://api.mainnet-beta.solana.com/';
+  static const String mainnetWebsocketUrl = 'wss://api.mainnet-beta.solana.com';
 
   // Irys URLs
   static const String devnetIrysUrl = 'https://devnet.irys.xyz';
