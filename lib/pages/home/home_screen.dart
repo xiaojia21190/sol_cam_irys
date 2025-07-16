@@ -50,10 +50,9 @@ class HomeScreen extends ConsumerWidget {
                       // 次要操作按钮
                       _buildSecondaryActions(context),
 
-                      const Spacer(),
-
                       // 统计信息
-                      _buildStatsSection(context, appState, ref),
+                      Expanded(child: _buildStatsSection(context, appState, ref)),
+                      // _buildStatsSection(context, appState, ref),
                     ],
                   ),
                 ),
@@ -147,19 +146,13 @@ class HomeScreen extends ConsumerWidget {
   }
 
   Widget _buildStatsSection(BuildContext context, AppStateModel appState, WidgetRef ref) {
-    return Row(
+    return Column(
       children: [
-        Expanded(
-          child: MetricCard(label: 'Photos', value: '${appState.capturedPhotos.length}', icon: Icons.photo_camera_rounded, color: AppTheme.primaryPurple),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: MetricCard(label: 'NFTs', value: '${appState.userNFTs.length}', icon: Icons.token_rounded, color: AppTheme.primaryGreen),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: MetricCard(label: 'Balance', value: '${ref.watch(walletBalanceProvider).toStringAsFixed(2)} SOL', icon: Icons.account_balance_wallet_rounded, color: AppTheme.success),
-        ),
+        MetricCard(label: 'Photos', value: '${appState.capturedPhotos.length}', icon: Icons.photo_camera_rounded, color: AppTheme.primaryPurple, layout: MetricCardLayout.horizontal),
+        const SizedBox(height: 12),
+        MetricCard(label: 'NFTs', value: '${appState.userNFTs.length}', icon: Icons.token_rounded, color: AppTheme.primaryGreen, layout: MetricCardLayout.horizontal),
+        const SizedBox(height: 12),
+        MetricCard(label: 'Balance', value: '${ref.watch(walletBalanceProvider).toStringAsFixed(2)} SOL', icon: Icons.account_balance_wallet_rounded, color: AppTheme.success, layout: MetricCardLayout.horizontal),
       ],
     );
   }

@@ -144,6 +144,8 @@ class StatusCard extends StatelessWidget {
   }
 }
 
+enum MetricCardLayout { vertical, horizontal }
+
 class MetricCard extends StatelessWidget {
   final String label;
   final String value;
@@ -151,41 +153,92 @@ class MetricCard extends StatelessWidget {
   final Color? color;
   final String? trend;
   final bool isPositiveTrend;
+  final MetricCardLayout layout;
 
-  const MetricCard({super.key, required this.label, required this.value, this.icon, this.color, this.trend, this.isPositiveTrend = true});
+  const MetricCard({super.key, required this.label, required this.value, this.icon, this.color, this.trend, this.isPositiveTrend = true, this.layout = MetricCardLayout.vertical});
 
   @override
   Widget build(BuildContext context) {
-    return ModernCard.filled(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+    return ModernCard.filled(child: layout == MetricCardLayout.horizontal ? _buildHorizontalLayout(context) : _buildVerticalLayout(context));
+  }
+
+  Widget _buildVerticalLayout(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            if (icon != null) ...[Icon(icon, size: 20, color: color ?? AppTheme.neutral600), const SizedBox(width: 8)],
+            Expanded(child: Text(label, style: Theme.of(context).textTheme.bodyMedium)),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: Theme.of(context).textTheme.headlineMedium?.copyWith(color: color ?? AppTheme.neutral800, fontWeight: FontWeight.bold),
+        ),
+        if (trend != null) ...[
+          const SizedBox(height: 4),
           Row(
             children: [
-              if (icon != null) ...[Icon(icon, size: 20, color: color ?? AppTheme.neutral600), const SizedBox(width: 8)],
-              Expanded(child: Text(label, style: Theme.of(context).textTheme.bodyMedium)),
+              Icon(isPositiveTrend ? Icons.trending_up : Icons.trending_down, size: 16, color: isPositiveTrend ? AppTheme.success : AppTheme.error),
+              const SizedBox(width: 4),
+              Text(
+                trend!,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: isPositiveTrend ? AppTheme.success : AppTheme.error, fontWeight: FontWeight.w500),
+              ),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(color: color ?? AppTheme.neutral800, fontWeight: FontWeight.bold),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildHorizontalLayout(BuildContext context) {
+    return Row(
+      children: [
+        // 图标部分
+        if (icon != null) ...[
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: (color ?? AppTheme.neutral600).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(AppConstants.smallBorderRadius)),
+            child: Icon(icon, size: 24, color: color ?? AppTheme.neutral600),
           ),
-          if (trend != null) ...[
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                Icon(isPositiveTrend ? Icons.trending_up : Icons.trending_down, size: 16, color: isPositiveTrend ? AppTheme.success : AppTheme.error),
-                const SizedBox(width: 4),
-                Text(
-                  trend!,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: isPositiveTrend ? AppTheme.success : AppTheme.error, fontWeight: FontWeight.w500),
+          const SizedBox(width: 16),
+        ],
+
+        // 内容部分
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppTheme.neutral600, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(color: color ?? AppTheme.neutral800, fontWeight: FontWeight.bold),
+              ),
+              if (trend != null) ...[
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    Icon(isPositiveTrend ? Icons.trending_up : Icons.trending_down, size: 14, color: isPositiveTrend ? AppTheme.success : AppTheme.error),
+                    const SizedBox(width: 4),
+                    Text(
+                      trend!,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: isPositiveTrend ? AppTheme.success : AppTheme.error, fontWeight: FontWeight.w500),
+                    ),
+                  ],
                 ),
               ],
-            ),
-          ],
-        ],
-      ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

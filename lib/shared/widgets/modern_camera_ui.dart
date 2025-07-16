@@ -15,26 +15,13 @@ class ModernCameraUI extends StatefulWidget {
   final VoidCallback? onToggleGrid;
   final bool showGrid;
 
-  const ModernCameraUI({
-    super.key,
-    required this.controller,
-    required this.isInitialized,
-    required this.isCapturing,
-    required this.flashMode,
-    required this.onCapture,
-    required this.onSwitchCamera,
-    required this.onToggleFlash,
-    required this.onClose,
-    this.onToggleGrid,
-    this.showGrid = false,
-  });
+  const ModernCameraUI({super.key, required this.controller, required this.isInitialized, required this.isCapturing, required this.flashMode, required this.onCapture, required this.onSwitchCamera, required this.onToggleFlash, required this.onClose, this.onToggleGrid, this.showGrid = false});
 
   @override
   State<ModernCameraUI> createState() => _ModernCameraUIState();
 }
 
-class _ModernCameraUIState extends State<ModernCameraUI>
-    with TickerProviderStateMixin {
+class _ModernCameraUIState extends State<ModernCameraUI> with TickerProviderStateMixin {
   late AnimationController _captureAnimationController;
   late AnimationController _flashAnimationController;
   late Animation<double> _captureScaleAnimation;
@@ -43,27 +30,12 @@ class _ModernCameraUIState extends State<ModernCameraUI>
   @override
   void initState() {
     super.initState();
-    _captureAnimationController = AnimationController(
-      duration: AppConstants.shortAnimationDuration,
-      vsync: this,
-    );
-    _flashAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 100),
-      vsync: this,
-    );
+    _captureAnimationController = AnimationController(duration: AppConstants.shortAnimationDuration, vsync: this);
+    _flashAnimationController = AnimationController(duration: const Duration(milliseconds: 100), vsync: this);
 
-    _captureScaleAnimation = Tween<double>(
-      begin: 1.0,
-      end: 0.9,
-    ).animate(CurvedAnimation(
-      parent: _captureAnimationController,
-      curve: Curves.easeInOut,
-    ));
+    _captureScaleAnimation = Tween<double>(begin: 1.0, end: 0.9).animate(CurvedAnimation(parent: _captureAnimationController, curve: Curves.easeInOut));
 
-    _flashOpacityAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(_flashAnimationController);
+    _flashOpacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(_flashAnimationController);
   }
 
   @override
@@ -88,25 +60,17 @@ class _ModernCameraUIState extends State<ModernCameraUI>
     return Stack(
       children: [
         // Camera preview
-        if (widget.isInitialized && widget.controller != null)
-          Positioned.fill(
-            child: CameraPreview(widget.controller!),
-          )
-        else
-          _buildLoadingState(),
+        if (widget.isInitialized && widget.controller != null) Positioned.fill(child: CameraPreview(widget.controller!)) else _buildLoadingState(),
 
         // Grid overlay
-        if (widget.showGrid && widget.isInitialized)
-          Positioned.fill(child: _buildGridOverlay()),
+        if (widget.showGrid && widget.isInitialized) Positioned.fill(child: _buildGridOverlay()),
 
         // Flash overlay
         AnimatedBuilder(
           animation: _flashOpacityAnimation,
           builder: (context, child) {
             return Positioned.fill(
-              child: Container(
-                color: Colors.white.withValues(alpha: _flashOpacityAnimation.value * 0.8),
-              ),
+              child: Container(color: Colors.white.withValues(alpha: _flashOpacityAnimation.value * 0.8)),
             );
           },
         ),
@@ -127,22 +91,11 @@ class _ModernCameraUIState extends State<ModernCameraUI>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            SizedBox(
-              width: 60,
-              height: 60,
-              child: CircularProgressIndicator(
-                strokeWidth: 3,
-                valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryPurple),
-              ),
-            ),
+            SizedBox(width: 60, height: 60, child: CircularProgressIndicator(strokeWidth: 3, valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryPurple))),
             SizedBox(height: 24),
             Text(
               'Initializing Camera...',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
+              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500),
             ),
           ],
         ),
@@ -151,10 +104,7 @@ class _ModernCameraUIState extends State<ModernCameraUI>
   }
 
   Widget _buildGridOverlay() {
-    return CustomPaint(
-      painter: GridPainter(),
-      child: Container(),
-    );
+    return CustomPaint(painter: GridPainter(), child: Container());
   }
 
   Widget _buildTopSection() {
@@ -163,33 +113,20 @@ class _ModernCameraUIState extends State<ModernCameraUI>
       left: 0,
       right: 0,
       child: Container(
-        height: MediaQuery.of(context).padding.top + 80,
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.black.withValues(alpha: 0.8),
-              Colors.transparent,
-            ],
-          ),
+          gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.black.withValues(alpha: 0.8), Colors.transparent], stops: const [0.0, 1.0]),
         ),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Container(
+            height: 60, // Fixed height for consistent layout
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                _buildTopButton(
-                  icon: Icons.close_rounded,
-                  onPressed: widget.onClose,
-                ),
+                _buildTopButton(icon: Icons.close_rounded, onPressed: widget.onClose),
                 _buildModeIndicator(),
-                _buildTopButton(
-                  icon: _getFlashIcon(),
-                  onPressed: widget.onToggleFlash,
-                  isActive: widget.flashMode != FlashMode.off,
-                ),
+                _buildTopButton(icon: _getFlashIcon(), onPressed: widget.onToggleFlash, isActive: widget.flashMode != FlashMode.off),
               ],
             ),
           ),
@@ -204,39 +141,34 @@ class _ModernCameraUIState extends State<ModernCameraUI>
       left: 0,
       right: 0,
       child: Container(
-        height: 200,
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.bottomCenter,
-            end: Alignment.topCenter,
-            colors: [
-              Colors.black.withValues(alpha: 0.9),
-              Colors.transparent,
-            ],
-          ),
+          gradient: LinearGradient(begin: Alignment.bottomCenter, end: Alignment.topCenter, colors: [Colors.black.withValues(alpha: 0.9), Colors.transparent]),
         ),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildBottomButton(
-                      icon: Icons.grid_3x3_rounded,
-                      onPressed: widget.onToggleGrid,
-                      isActive: widget.showGrid,
-                    ),
-                    _buildCaptureButton(),
-                    _buildBottomButton(
-                      icon: Icons.flip_camera_ios_rounded,
-                      onPressed: widget.onSwitchCamera,
-                    ),
-                  ],
+                // Main controls row
+                SizedBox(
+                  height: 80, // Fixed height for capture button
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Left side button
+                      _buildBottomButton(icon: Icons.grid_3x3_rounded, onPressed: widget.onToggleGrid, isActive: widget.showGrid),
+
+                      // Center capture button
+                      _buildCaptureButton(),
+
+                      // Right side button
+                      _buildBottomButton(icon: Icons.flip_camera_ios_rounded, onPressed: widget.onSwitchCamera),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 8), // Reduced bottom spacing
               ],
             ),
           ),
@@ -245,28 +177,18 @@ class _ModernCameraUIState extends State<ModernCameraUI>
     );
   }
 
-  Widget _buildTopButton({
-    required IconData icon,
-    required VoidCallback? onPressed,
-    bool isActive = false,
-  }) {
+  Widget _buildTopButton({required IconData icon, required VoidCallback? onPressed, bool isActive = false}) {
     return Container(
       width: 44,
       height: 44,
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(22),
-        border: isActive
-            ? Border.all(color: AppTheme.primaryPurple, width: 2)
-            : null,
+        border: isActive ? Border.all(color: AppTheme.primaryPurple, width: 2) : null,
       ),
       child: IconButton(
         onPressed: onPressed,
-        icon: Icon(
-          icon,
-          color: isActive ? AppTheme.primaryPurple : Colors.white,
-          size: 22,
-        ),
+        icon: Icon(icon, color: isActive ? AppTheme.primaryPurple : Colors.white, size: 22),
         padding: EdgeInsets.zero,
       ),
     );
@@ -275,46 +197,26 @@ class _ModernCameraUIState extends State<ModernCameraUI>
   Widget _buildModeIndicator() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(20),
-      ),
+      decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(20)),
       child: const Text(
         'PHOTO',
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 1.2,
-        ),
+        style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 1.2),
       ),
     );
   }
 
-  Widget _buildBottomButton({
-    required IconData icon,
-    VoidCallback? onPressed,
-    bool isActive = false,
-  }) {
+  Widget _buildBottomButton({required IconData icon, VoidCallback? onPressed, bool isActive = false}) {
     return Container(
       width: 50,
       height: 50,
       decoration: BoxDecoration(
-        color: isActive
-            ? AppTheme.primaryPurple.withValues(alpha: 0.2)
-            : Colors.black.withValues(alpha: 0.3),
+        color: isActive ? AppTheme.primaryPurple.withValues(alpha: 0.2) : Colors.black.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(25),
-        border: isActive
-            ? Border.all(color: AppTheme.primaryPurple, width: 2)
-            : Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1),
+        border: isActive ? Border.all(color: AppTheme.primaryPurple, width: 2) : Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1),
       ),
       child: IconButton(
         onPressed: onPressed,
-        icon: Icon(
-          icon,
-          color: isActive ? AppTheme.primaryPurple : Colors.white,
-          size: 24,
-        ),
+        icon: Icon(icon, color: isActive ? AppTheme.primaryPurple : Colors.white, size: 24),
         padding: EdgeInsets.zero,
       ),
     );
@@ -334,34 +236,14 @@ class _ModernCameraUIState extends State<ModernCameraUI>
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(40),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.3),
-                  width: 4,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.3),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+                border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 4),
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 2))],
               ),
               child: widget.isCapturing
                   ? const Center(
-                      child: SizedBox(
-                        width: 30,
-                        height: 30,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 3,
-                          valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryPurple),
-                        ),
-                      ),
+                      child: SizedBox(width: 30, height: 30, child: CircularProgressIndicator(strokeWidth: 3, valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryPurple))),
                     )
-                  : const Icon(
-                      Icons.camera_alt_rounded,
-                      color: AppTheme.primaryPurple,
-                      size: 32,
-                    ),
+                  : const Icon(Icons.camera_alt_rounded, color: AppTheme.primaryPurple, size: 32),
             ),
           ),
         );
@@ -391,28 +273,12 @@ class GridPainter extends CustomPainter {
       ..strokeWidth = 1;
 
     // Vertical lines
-    canvas.drawLine(
-      Offset(size.width / 3, 0),
-      Offset(size.width / 3, size.height),
-      paint,
-    );
-    canvas.drawLine(
-      Offset(size.width * 2 / 3, 0),
-      Offset(size.width * 2 / 3, size.height),
-      paint,
-    );
+    canvas.drawLine(Offset(size.width / 3, 0), Offset(size.width / 3, size.height), paint);
+    canvas.drawLine(Offset(size.width * 2 / 3, 0), Offset(size.width * 2 / 3, size.height), paint);
 
     // Horizontal lines
-    canvas.drawLine(
-      Offset(0, size.height / 3),
-      Offset(size.width, size.height / 3),
-      paint,
-    );
-    canvas.drawLine(
-      Offset(0, size.height * 2 / 3),
-      Offset(size.width, size.height * 2 / 3),
-      paint,
-    );
+    canvas.drawLine(Offset(0, size.height / 3), Offset(size.width, size.height / 3), paint);
+    canvas.drawLine(Offset(0, size.height * 2 / 3), Offset(size.width, size.height * 2 / 3), paint);
   }
 
   @override
