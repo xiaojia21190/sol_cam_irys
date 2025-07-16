@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:camera/camera.dart';
-import '../../core/constants/app_constants.dart';
 import '../../shared/widgets/modern_camera_ui.dart';
 
 class CameraScreen extends ConsumerStatefulWidget {
@@ -19,7 +18,6 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
   bool _isCapturing = false;
   FlashMode _flashMode = FlashMode.auto;
   bool _showGrid = false;
-  Offset? _focusPoint;
 
   @override
   void initState() {
@@ -153,18 +151,5 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
         onToggleGrid: () => setState(() => _showGrid = !_showGrid),
       ),
     );
-  }
-
-  IconData _getFlashIcon() {
-    switch (_flashMode) {
-      case FlashMode.auto:
-        return Icons.flash_auto;
-      case FlashMode.always:
-        return Icons.flash_on;
-      case FlashMode.off:
-        return Icons.flash_off;
-      default:
-        return Icons.flash_auto;
-    }
   }
 }

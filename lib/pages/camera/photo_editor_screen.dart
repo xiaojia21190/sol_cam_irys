@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/constants/app_constants.dart';
 import '../../models/photo_model.dart';
 
 class PhotoEditorScreen extends ConsumerStatefulWidget {
