@@ -10,6 +10,7 @@ import '../../shared/widgets/modern_card.dart';
 import '../../shared/widgets/modern_nft_card.dart';
 import '../../shared/widgets/modern_loading.dart';
 import '../../shared/widgets/server_status_card.dart';
+import '../../shared/widgets/confirm_mint_dialog.dart';
 
 class MintNFTScreen extends ConsumerStatefulWidget {
   final String? initialImagePath;
@@ -80,16 +81,21 @@ class _MintNFTScreenState extends ConsumerState<MintNFTScreen> {
       return;
     }
 
-    // 开始铸造流程
-    await ref
-        .read(mintProcessProvider.notifier)
-        .startMinting(
-          imageFile: _selectedImage!,
-          nftName: _nameController.text.trim(),
-          nftDescription: _descriptionController.text.trim(),
-          additionalTags: {'Creator': 'SolanaLens User', 'Platform': 'Mobile'},
-          usePublicStorage: _usePublicStorage, // 传递存储方式选择
-        );
+    // 显示确认对话框
+    final confirmed = await showConfirmMintDialog(context: context, imageFile: _selectedImage!, nftName: _nameController.text.trim(), nftDescription: _descriptionController.text.trim());
+
+    // 只有用户确认后才开始铸造流程
+    if (confirmed == true && mounted) {
+      await ref
+          .read(mintProcessProvider.notifier)
+          .startMinting(
+            imageFile: _selectedImage!,
+            nftName: _nameController.text.trim(),
+            nftDescription: _descriptionController.text.trim(),
+            additionalTags: {'Creator': 'SolanaLens User', 'Platform': 'Mobile'},
+            usePublicStorage: _usePublicStorage, // 传递存储方式选择
+          );
+    }
   }
 
   @override
@@ -413,8 +419,8 @@ class _MintNFTScreenState extends ConsumerState<MintNFTScreen> {
               ? 'Connect Wallet First'
               : _selectedImage == null
               ? 'Select Image First'
-              : 'Mint NFT',
-          icon: Icons.auto_awesome_rounded,
+              : 'Review & Mint NFT',
+          icon: Icons.preview_rounded,
           size: ModernButtonSize.large,
           isFullWidth: true,
           isLoading: mintState.isLoading,

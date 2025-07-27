@@ -84,27 +84,30 @@ class MintProcess extends _$MintProcess {
         // 使用 Irys 服务器的组合上传功能
         _updateState(stage: MintProcessStage.savingImage, message: '1/2: 正在上传到 Irys 网络...', progress: 0.3);
 
-        // 首先创建临时的 metadata（需要先有图片URL）
+        // 创建基础metadata（后台服务会自动填充正确的图片URL）
         final tempMetadata = NFTMetadata(
           name: nftName,
           description: nftDescription,
-          image: 'placeholder', // 临时占位符
+          image: 'temp://uploading', // 临时标识符，后台服务会替换为真实URL
           attributes: [
             const NFTAttribute(traitType: 'App', value: 'SolanaLens'),
             const NFTAttribute(traitType: 'Version', value: '1.0.0'),
             const NFTAttribute(traitType: 'Storage', value: 'Irys'),
+            NFTAttribute(traitType: 'Created', value: DateTime.now().toIso8601String()),
           ],
           properties: {
             'files': [
-              {'uri': 'placeholder', 'type': 'image/jpeg'},
+              {'uri': 'temp://uploading', 'type': 'image/jpeg'},
             ],
             'category': 'image',
+            'creators': [
+              {'address': appState.connectedWallet!.publicKey, 'share': 100},
+            ],
           },
         );
 
         // 使用组合上传
-        final irysService = storageService as IrysServerStorageService;
-        final uploadResult = await irysService.uploadComplete(imageFile, tempMetadata);
+        final uploadResult = await storageService.uploadComplete(imageFile, tempMetadata);
 
         imageLocalPath = uploadResult['imageIrysId']!;
         imageUrl = uploadResult['imageUrl']!;
