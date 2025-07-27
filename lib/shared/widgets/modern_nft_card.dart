@@ -51,25 +51,52 @@ class _ModernNFTCardState extends State<ModernNFTCard> with SingleTickerProvider
     if (widget.imageFile != null) {
       imageWidget = Image.file(widget.imageFile!, fit: BoxFit.cover, width: double.infinity, height: 200);
     } else if (widget.imageUrl != null) {
-      imageWidget = Image.network(
-        widget.imageUrl!,
-        fit: BoxFit.cover,
-        width: double.infinity,
-        height: 200,
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return Container(
-            height: 200,
-            color: AppTheme.neutral100,
-            child: Center(
-              child: CircularProgressIndicator(value: loadingProgress.expectedTotalBytes != null ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes! : null, valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primaryPurple)),
-            ),
-          );
-        },
-        errorBuilder: (context, error, stackTrace) {
-          return _buildPlaceholder();
-        },
-      );
+      // 检查是否是本地文件路径
+      if (widget.imageUrl!.startsWith('file://')) {
+        // 移除 file:// 前缀并使用 Image.file()
+        final filePath = widget.imageUrl!.substring(7);
+        imageWidget = Image.file(
+          File(filePath),
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: 200,
+          errorBuilder: (context, error, stackTrace) {
+            return _buildPlaceholder();
+          },
+        );
+      } else if (widget.imageUrl!.startsWith('/')) {
+        // 直接是本地文件路径
+        imageWidget = Image.file(
+          File(widget.imageUrl!),
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: 200,
+          errorBuilder: (context, error, stackTrace) {
+            return _buildPlaceholder();
+          },
+        );
+      } else {
+        // 网络图片
+        imageWidget = Image.network(
+          widget.imageUrl!,
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: 200,
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return Container(
+              height: 200,
+              color: AppTheme.neutral100,
+              child: Center(
+                child: CircularProgressIndicator(value: loadingProgress.expectedTotalBytes != null ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes! : null, valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primaryPurple)),
+              ),
+            );
+          },
+          errorBuilder: (context, error, stackTrace) {
+            return _buildPlaceholder();
+          },
+        );
+      }
     } else {
       imageWidget = _buildPlaceholder();
     }

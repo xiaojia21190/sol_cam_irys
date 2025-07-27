@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:solana/solana.dart';
 import '../models/app_state_model.dart';
 import '../models/wallet_model.dart';
 import '../models/nft_model.dart';
@@ -9,6 +8,7 @@ import '../models/photo_model.dart';
 import '../services/solana_service.dart';
 import '../services/storage_service.dart';
 import '../services/camera_service.dart';
+import '../core/constants/app_constants.dart';
 
 part 'app_state_provider.g.dart';
 
@@ -124,17 +124,9 @@ SolanaService solanaService(Ref ref) {
 
 @Riverpod(keepAlive: true)
 StorageService storageService(Ref ref) {
-  final settings = ref.watch(appStateProvider.select((state) => state.settings));
-
-  // 创建一个临时的 SolanaClient 用于 IrysStorageService
-  final solanaClient = SolanaClient(rpcUrl: Uri.parse(settings.network.rpcUrl), websocketUrl: Uri.parse(settings.network.websocketUrl));
-
-  return IrysStorageService(
-    nodeUrl: settings.network.irysUrl,
-    solanaClient: solanaClient,
-    authToken: null, // 将在运行时设置
-    publicKey: null, // 将在运行时设置
-  );
+  // 使用 Irys 服务器存储服务
+  // 配置在 AppConstants.currentEnvironment 中
+  return IrysServerStorageService(serverBaseUrl: AppConstants.irysServerUrl);
 }
 
 @riverpod
@@ -185,35 +177,50 @@ class WalletActions extends _$WalletActions {
       final solanaService = ref.read(solanaServiceProvider);
       final storageService = ref.read(storageServiceProvider);
 
+      print('🔄 开始钱包连接流程...');
       appState.setStatus(AppStatus.loading);
 
       // Check if Mobile Wallet Adapter is available
+      print('📱 检查 Mobile Wallet Adapter 可用性...');
       final isWalletAdapterAvailable = await solanaService.isWalletAdapterAvailable();
+      print('📱 MWA 可用性检查结果: $isWalletAdapterAvailable');
+
       if (!isWalletAdapterAvailable) {
         throw Exception('Mobile Wallet Adapter is not available. Please install a compatible Solana wallet.');
       }
 
+      print('🔗 调用钱包连接...');
       final wallet = await solanaService.connectWallet();
+      print('✅ 钱包连接成功: ${wallet.publicKey.substring(0, 10)}...');
+
       appState.setConnectedWallet(wallet);
 
       // Update storage service with wallet credentials
+      print('🔄 更新存储服务凭据...');
       final authToken = solanaService.getAuthToken();
       final publicKey = solanaService.getPublicKey();
       storageService.updateWalletCredentials(authToken, publicKey);
+      print('✅ 存储服务凭据更新完成');
 
       appState.setStatus(AppStatus.ready);
+      print('🎉 钱包连接流程完成！');
     } catch (e) {
+      print('❌ 钱包连接失败: $e');
       String errorMessage;
 
       // Check for specific wallet-related errors
       if (e.toString().contains('ActivityNotFoundException') || e.toString().contains('No Activity found to handle Intent') || e.toString().contains('solana-wallet://') || e.toString().contains('Mobile Wallet Adapter is not available')) {
-        errorMessage = 'No Solana wallet app found. Please install a compatible wallet like Phantom, Solflare, or Backpack from the Play Store.';
+        errorMessage = '❌ 未找到 Solana 钱包应用\n\n🔧 解决方案:\n1. 安装 Phantom、Solflare 或 Backpack 钱包\n2. 确保钱包应用已更新到最新版本\n3. 重启应用后重试';
       } else if (e.toString().contains('User declined authorization') || e.toString().contains('User declined wallet authorization')) {
-        errorMessage = 'Wallet connection was cancelled by user.';
+        errorMessage = '❌ 用户取消了钱包连接\n\n💡 提示: 请在钱包应用中点击"连接"以继续';
       } else if (e.toString().contains('Solana client not initialized')) {
-        errorMessage = 'App is still initializing. Please wait a moment and try again.';
+        errorMessage = '❌ 应用正在初始化中\n\n⏳ 请稍等片刻后重试';
+      } else if (e.toString().contains('SecurityException')) {
+        errorMessage = '❌ 权限错误\n\n🔧 解决方案:\n1. 检查应用权限设置\n2. 确保网络访问已允许\n3. 重新安装应用';
+      } else if (e.toString().contains('TimeoutException')) {
+        errorMessage = '❌ 连接超时\n\n🔧 解决方案:\n1. 检查网络连接\n2. 尝试切换网络\n3. 重启应用后重试';
       } else {
-        errorMessage = 'Failed to connect wallet: ${e.toString().replaceAll('SolanaException: ', '').replaceAll('Failed to connect wallet: ', '')}';
+        errorMessage = '❌ 连接失败: ${e.toString().replaceAll('SolanaException: ', '').replaceAll('Failed to connect wallet: ', '')}\n\n🔧 建议:\n1. 确保已安装钱包应用\n2. 检查网络连接\n3. 重启应用后重试';
       }
 
       ref.read(appStateProvider.notifier).setError(errorMessage);

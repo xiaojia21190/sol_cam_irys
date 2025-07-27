@@ -52,6 +52,7 @@ dependencies:
   # 网络请求
   dio: ^5.1.1
   http: ^1.2.0
+  http_parser: ^4.0.2
 
   # Web3/Solana集成
   solana: ^0.31.2+1
@@ -88,7 +89,7 @@ dependencies:
 
   # 文件处理
   mime: ^1.0.4
-  path: ^1.8.3
+  path: ^1.9.0
 
 
 dev_dependencies:

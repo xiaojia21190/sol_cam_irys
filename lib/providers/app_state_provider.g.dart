@@ -23,7 +23,7 @@ final solanaServiceProvider = Provider<SolanaService>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef SolanaServiceRef = ProviderRef<SolanaService>;
-String _$storageServiceHash() => r'ff8ac9b5ff769f43a134e5069649c45a8b4894bf';
+String _$storageServiceHash() => r'060bd28c77c02edbd973e6092306cab645c30581';
 
 /// See also [storageService].
 @ProviderFor(storageService)
@@ -142,7 +142,7 @@ final processedPhotosProvider = AutoDisposeProvider<List<PhotoModel>>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef ProcessedPhotosRef = AutoDisposeProviderRef<List<PhotoModel>>;
-String _$appStateHash() => r'344fc48c1efc0f017bc464f187e9761bbde30927';
+String _$appStateHash() => r'8d92b095c8c4e2421b3d39c6df402b64445bfffa';
 
 /// See also [AppState].
 @ProviderFor(AppState)
@@ -157,7 +157,7 @@ final appStateProvider = NotifierProvider<AppState, AppStateModel>.internal(
 );
 
 typedef _$AppState = Notifier<AppStateModel>;
-String _$walletActionsHash() => r'a6533683396a1e07ef67533a00b3cf349272e251';
+String _$walletActionsHash() => r'8a0ac4abbb3b071cbae815bc5df011c2c8c3ba3c';
 
 /// See also [WalletActions].
 @ProviderFor(WalletActions)

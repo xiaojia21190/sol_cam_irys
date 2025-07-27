@@ -9,6 +9,7 @@ import '../../shared/widgets/modern_button.dart';
 import '../../shared/widgets/modern_card.dart';
 import '../../shared/widgets/modern_nft_card.dart';
 import '../../shared/widgets/modern_loading.dart';
+import '../../shared/widgets/server_status_card.dart';
 
 class MintNFTScreen extends ConsumerStatefulWidget {
   final String? initialImagePath;
@@ -25,6 +26,7 @@ class _MintNFTScreenState extends ConsumerState<MintNFTScreen> {
   final _descriptionController = TextEditingController();
   File? _selectedImage;
   final _imagePicker = ImagePicker();
+  bool _usePublicStorage = false; // 新增：存储方式选择
 
   @override
   void initState() {
@@ -79,7 +81,15 @@ class _MintNFTScreenState extends ConsumerState<MintNFTScreen> {
     }
 
     // 开始铸造流程
-    await ref.read(mintProcessProvider.notifier).startMinting(imageFile: _selectedImage!, nftName: _nameController.text.trim(), nftDescription: _descriptionController.text.trim(), additionalTags: {'Creator': 'SolanaLens User', 'Platform': 'Mobile'});
+    await ref
+        .read(mintProcessProvider.notifier)
+        .startMinting(
+          imageFile: _selectedImage!,
+          nftName: _nameController.text.trim(),
+          nftDescription: _descriptionController.text.trim(),
+          additionalTags: {'Creator': 'SolanaLens User', 'Platform': 'Mobile'},
+          usePublicStorage: _usePublicStorage, // 传递存储方式选择
+        );
   }
 
   @override
@@ -120,6 +130,9 @@ class _MintNFTScreenState extends ConsumerState<MintNFTScreen> {
 
                   const SizedBox(height: 20),
 
+                  // Server Status Card (只在使用公共存储时显示)
+                  if (_usePublicStorage) ...[const ServerStatusCard(), const SizedBox(height: 20)],
+
                   // Image Selection Card
                   _buildImageSelectionCard(mintState),
 
@@ -127,6 +140,11 @@ class _MintNFTScreenState extends ConsumerState<MintNFTScreen> {
 
                   // NFT Information Card
                   _buildNFTInfoCard(mintState),
+
+                  const SizedBox(height: 20),
+
+                  // Storage Options Card
+                  _buildStorageOptionsCard(mintState),
 
                   // Progress Card
                   if (mintState.isLoading || mintState.isCompleted || mintState.isFailed) _buildProgressCard(mintState),
@@ -214,6 +232,100 @@ class _MintNFTScreenState extends ConsumerState<MintNFTScreen> {
             ),
             maxLines: 3,
             maxLength: 200,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStorageOptionsCard(dynamic mintState) {
+    return ModernCard.elevated(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.cloud_upload_rounded, color: AppTheme.primaryPurple, size: 24),
+              const SizedBox(width: 8),
+              Text('存储选项', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // 本地存储选项
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: !_usePublicStorage ? AppTheme.primaryPurple.withValues(alpha: 0.1) : AppTheme.neutral100,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: !_usePublicStorage ? AppTheme.primaryPurple : AppTheme.neutral300, width: !_usePublicStorage ? 2 : 1),
+            ),
+            child: Row(
+              children: [
+                Radio<bool>(
+                  value: false,
+                  groupValue: _usePublicStorage,
+                  onChanged: mintState.isLoading
+                      ? null
+                      : (value) {
+                          setState(() {
+                            _usePublicStorage = value!;
+                          });
+                        },
+                  activeColor: AppTheme.primaryPurple,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('本地存储 (推荐)', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 4),
+                      Text('✅ 完全免费\n✅ 即时保存\n⚠️ 仅在此设备可见', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppTheme.neutral600)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // 公共存储选项
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: _usePublicStorage ? AppTheme.primaryPurple.withValues(alpha: 0.1) : AppTheme.neutral100,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: _usePublicStorage ? AppTheme.primaryPurple : AppTheme.neutral300, width: _usePublicStorage ? 2 : 1),
+            ),
+            child: Row(
+              children: [
+                Radio<bool>(
+                  value: true,
+                  groupValue: _usePublicStorage,
+                  onChanged: mintState.isLoading
+                      ? null
+                      : (value) {
+                          setState(() {
+                            _usePublicStorage = value!;
+                          });
+                        },
+                  activeColor: AppTheme.primaryPurple,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Irys 分布式存储', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 4),
+                      Text('✅ 永久存储\n✅ 全球可访问\n✅ 去中心化\n✅ 钱包/市场兼容', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppTheme.neutral600)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -321,6 +433,7 @@ class _MintNFTScreenState extends ConsumerState<MintNFTScreen> {
                 _selectedImage = null;
                 _nameController.clear();
                 _descriptionController.clear();
+                _usePublicStorage = false;
               });
             },
           ),

@@ -2,12 +2,13 @@ import 'dart:io';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/nft_model.dart';
+import '../services/storage_service.dart';
 import 'app_state_provider.dart';
 
 part 'mint_process_provider.g.dart';
 
 /// NFT 铸造流程的状态
-enum MintProcessStage { idle, calculatingPrice, fundingNode, uploadingImage, uploadingMetadata, creatingNFT, completed, failed }
+enum MintProcessStage { idle, savingImage, savingMetadata, creatingNFT, completed, failed }
 
 /// NFT 铸造流程状态模型
 class MintProcessState {
@@ -50,7 +51,13 @@ class MintProcess extends _$MintProcess {
   }
 
   /// 开始 NFT 铸造流程
-  Future<void> startMinting({required File imageFile, required String nftName, required String nftDescription, Map<String, String>? additionalTags}) async {
+  Future<void> startMinting({
+    required File imageFile,
+    required String nftName,
+    required String nftDescription,
+    Map<String, String>? additionalTags,
+    bool usePublicStorage = false, // 新增：是否使用公共存储
+  }) async {
     try {
       // 重置状态
       state = const MintProcessState(stage: MintProcessStage.idle);
@@ -65,38 +72,105 @@ class MintProcess extends _$MintProcess {
         return;
       }
 
-      // 步骤 1: 计算上传价格
-      _updateState(stage: MintProcessStage.calculatingPrice, message: '1/6: 计算存储费用...', progress: 0.1);
+      // 检测是否为 Irys 服务器存储（支持组合上传）
+      final isIrysServer = storageService is IrysServerStorageService;
 
-      final imageBytes = await imageFile.readAsBytes();
-      final imagePrice = await storageService.getUploadPrice(imageBytes.length);
+      String imageLocalPath;
+      String imageUrl;
+      String metadataLocalPath;
+      String metadataUrl;
 
-      // 估算 metadata JSON 大小（约 1KB）
-      const estimatedMetadataSize = 1024;
-      final metadataPrice = await storageService.getUploadPrice(estimatedMetadataSize);
-      final totalPrice = imagePrice + metadataPrice;
+      if (isIrysServer && usePublicStorage) {
+        // 使用 Irys 服务器的组合上传功能
+        _updateState(stage: MintProcessStage.savingImage, message: '1/2: 正在上传到 Irys 网络...', progress: 0.3);
 
-      // 步骤 2: 充值 Irys 节点
-      _updateState(stage: MintProcessStage.fundingNode, message: '2/6: 充值存储节点... 请在钱包中确认交易', progress: 0.2);
+        // 首先创建临时的 metadata（需要先有图片URL）
+        final tempMetadata = NFTMetadata(
+          name: nftName,
+          description: nftDescription,
+          image: 'placeholder', // 临时占位符
+          attributes: [
+            const NFTAttribute(traitType: 'App', value: 'SolanaLens'),
+            const NFTAttribute(traitType: 'Version', value: '1.0.0'),
+            const NFTAttribute(traitType: 'Storage', value: 'Irys'),
+          ],
+          properties: {
+            'files': [
+              {'uri': 'placeholder', 'type': 'image/jpeg'},
+            ],
+            'category': 'image',
+          },
+        );
 
-      await storageService.fundNode(totalPrice);
+        // 使用组合上传
+        final irysService = storageService as IrysServerStorageService;
+        final uploadResult = await irysService.uploadComplete(imageFile, tempMetadata);
 
-      // 步骤 3: 上传图片
-      _updateState(stage: MintProcessStage.uploadingImage, message: '3/6: 上传图片到 Arweave...', progress: 0.4);
+        imageLocalPath = uploadResult['imageIrysId']!;
+        imageUrl = uploadResult['imageUrl']!;
+        metadataLocalPath = uploadResult['metadataIrysId']!;
+        metadataUrl = uploadResult['metadataUrl']!;
 
-      final imageArweaveId = await storageService.uploadImage(imageFile, tags: additionalTags);
-      final imageUrl = await storageService.getUploadUrl(imageArweaveId);
+        _updateState(stage: MintProcessStage.savingMetadata, message: '2/2: Irys 上传完成！', progress: 0.6);
+      } else {
+        // 传统的分步上传
+        // 步骤 1: 保存图片
+        if (usePublicStorage) {
+          _updateState(stage: MintProcessStage.savingImage, message: '1/3: 上传图片到公共存储...', progress: 0.2);
+        } else {
+          _updateState(stage: MintProcessStage.savingImage, message: '1/3: 保存图片到本地...', progress: 0.2);
+        }
 
-      // 步骤 4: 创建并上传 metadata
-      _updateState(stage: MintProcessStage.uploadingMetadata, message: '4/6: 上传 NFT 元数据...', progress: 0.6);
+        if (usePublicStorage) {
+          imageLocalPath = await storageService.uploadImagePublic(imageFile, tags: additionalTags);
+          imageUrl = imageLocalPath; // 公共存储直接返回URL
+        } else {
+          imageLocalPath = await storageService.uploadImage(imageFile, tags: additionalTags);
+          imageUrl = await storageService.getUploadUrl(imageLocalPath);
+        }
 
-      final metadata = NFTMetadata(
+        // 步骤 2: 创建并保存 metadata
+        if (usePublicStorage) {
+          _updateState(stage: MintProcessStage.savingMetadata, message: '2/3: 上传 NFT 元数据到公共存储...', progress: 0.4);
+        } else {
+          _updateState(stage: MintProcessStage.savingMetadata, message: '2/3: 保存 NFT 元数据到本地...', progress: 0.4);
+        }
+
+        final metadata = NFTMetadata(
+          name: nftName,
+          description: nftDescription,
+          image: imageUrl,
+          attributes: [
+            const NFTAttribute(traitType: 'App', value: 'SolanaLens'),
+            const NFTAttribute(traitType: 'Version', value: '1.0.0'),
+            NFTAttribute(traitType: 'Storage', value: usePublicStorage ? 'Public' : 'Local'),
+          ],
+          properties: {
+            'files': [
+              {'uri': imageUrl, 'type': 'image/jpeg'},
+            ],
+            'category': 'image',
+          },
+        );
+
+        if (usePublicStorage) {
+          metadataLocalPath = await storageService.uploadMetadataPublic(metadata);
+          metadataUrl = metadataLocalPath; // 公共存储直接返回URL
+        } else {
+          metadataLocalPath = await storageService.uploadMetadata(metadata);
+          metadataUrl = await storageService.getUploadUrl(metadataLocalPath);
+        }
+      }
+
+      // 为了铸造 NFT，创建完整的 metadata（不管是组合上传还是分步上传）
+      final finalMetadata = NFTMetadata(
         name: nftName,
         description: nftDescription,
         image: imageUrl,
         attributes: [
           const NFTAttribute(traitType: 'App', value: 'SolanaLens'),
           const NFTAttribute(traitType: 'Version', value: '1.0.0'),
+          NFTAttribute(traitType: 'Storage', value: isIrysServer && usePublicStorage ? 'Irys' : (usePublicStorage ? 'Public' : 'Local')),
         ],
         properties: {
           'files': [
@@ -106,15 +180,12 @@ class MintProcess extends _$MintProcess {
         },
       );
 
-      final metadataArweaveId = await storageService.uploadMetadata(metadata);
-      final metadataUrl = await storageService.getUploadUrl(metadataArweaveId);
-
-      // 步骤 5: 铸造 NFT
-      _updateState(stage: MintProcessStage.creatingNFT, message: '5/6: 铸造 NFT... 请在钱包中确认交易', progress: 0.8);
+      // 步骤 3: 铸造 NFT
+      _updateState(stage: MintProcessStage.creatingNFT, message: '3/3: 铸造 NFT... 请在钱包中确认交易', progress: 0.8);
 
       final mintSignature = await solanaService.mintNFT(metadataUri: metadataUrl, name: nftName, symbol: 'SLENS', walletAddress: appState.connectedWallet!.publicKey);
 
-      // 步骤 6: 完成
+      // 步骤 4: 完成
       final completedNFT = NFTModel(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         name: nftName,
@@ -124,13 +195,13 @@ class MintProcess extends _$MintProcess {
         mintAddress: 'mock_mint_address', // 实际应该从铸造交易中获取
         ownerAddress: appState.connectedWallet!.publicKey,
         createdAt: DateTime.now(),
-        metadata: metadata,
+        metadata: finalMetadata,
         status: NFTStatus.completed,
         transactionSignature: mintSignature,
-        arweaveId: imageArweaveId,
+        arweaveId: imageLocalPath, // 现在保存本地路径
       );
 
-      _updateState(stage: MintProcessStage.completed, message: '6/6: NFT 铸造完成！', progress: 1.0, transactionSignature: mintSignature, arweaveImageUrl: imageUrl, arweaveMetadataUrl: metadataUrl, completedNFT: completedNFT);
+      _updateState(stage: MintProcessStage.completed, message: 'NFT 铸造完成！', progress: 1.0, transactionSignature: mintSignature, arweaveImageUrl: imageUrl, arweaveMetadataUrl: metadataUrl, completedNFT: completedNFT);
 
       // 将 NFT 添加到应用状态
       ref.read(appStateProvider.notifier).addNFT(completedNFT);

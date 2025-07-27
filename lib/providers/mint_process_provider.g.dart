@@ -60,7 +60,7 @@ final mintingMessageProvider = AutoDisposeProvider<String?>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef MintingMessageRef = AutoDisposeProviderRef<String?>;
-String _$mintProcessHash() => r'a76445ffb31b858f272d16137b0dfcfdf9f75cb6';
+String _$mintProcessHash() => r'794605e17948a8e81fa5dd4e3b73e18735762188';
 
 /// NFT 铸造流程管理器
 ///
